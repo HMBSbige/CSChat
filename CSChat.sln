@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27130.2026
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSChat", "CSChat\CSChat.csproj", "{BB721277-A2FC-4179-BC46-73931F1A736E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BB721277-A2FC-4179-BC46-73931F1A736E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB721277-A2FC-4179-BC46-73931F1A736E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB721277-A2FC-4179-BC46-73931F1A736E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB721277-A2FC-4179-BC46-73931F1A736E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C55D14EC-015F-49B2-8F18-14B8ED42ED8C}
+	EndGlobalSection
+EndGlobal
