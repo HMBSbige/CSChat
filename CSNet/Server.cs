@@ -1,15 +1,13 @@
-﻿using CSChat.Common;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using System.Windows.Forms;
 
-namespace Common
+namespace CSNet
 {
-	internal class Server
+	public class Server
 	{
 		// Client Collection
 		private readonly List<ConnectedObject> _clients;
@@ -18,7 +16,7 @@ namespace Common
 		private readonly ManualResetEvent _connected;
 
 		// Server socket
-		private static Socket _server = null;
+		private static Socket _server;
 
 		public Server()
 		{
@@ -36,9 +34,9 @@ namespace Common
 					LocalIPAddress = ip
 				};
 
-				Debug.WriteLine($@"[{ip}:{port}]:启动中...");
+				Debug.WriteLine($@"[Server] [{ip}:{port}]:启动中...");
 				_server = cm.CreateListener();
-				Debug.WriteLine($@"[{ip}:{port}]:启动成功，等待连接...");
+				Debug.WriteLine($@"[Server] [{ip}:{port}]:启动成功，等待连接...");
 
 				while (true)
 				{
@@ -51,14 +49,14 @@ namespace Common
 			}
 			catch (Exception ex)
 			{
-				MessageBox.Show(ex.Message, ex.Data.ToString(), MessageBoxButtons.OK, MessageBoxIcon.Error);
+				Debug.WriteLine(ex.Message);
 				StopListen();
 			}
 		}
 
 		private void AcceptCallback(IAsyncResult ar)
 		{
-			Debug.WriteLine(@"有客户端连接");
+			Debug.WriteLine(@"[Server] 有客户端连接");
 
 			_connected.Set();
 
@@ -86,7 +84,7 @@ namespace Common
 			}
 			catch (Exception ex)
 			{
-				MessageBox.Show(ex.Message, ex.Data.ToString(), MessageBoxButtons.OK, MessageBoxIcon.Error);
+				Debug.WriteLine(ex.Message);
 			}
 		}
 
@@ -150,7 +148,7 @@ namespace Common
 			}
 			catch (Exception ex)
 			{
-				MessageBox.Show(ex.Message, ex.Data.ToString(), MessageBoxButtons.OK, MessageBoxIcon.Error);
+				Debug.WriteLine(ex.Message);
 			}
 		}
 
@@ -162,14 +160,14 @@ namespace Common
 		{
 			if (client == null)
 			{
-				Debug.WriteLine(@"Unable to send reply: client null");
+				Debug.WriteLine(@"[Server] 无法回应: client null");
 				return;
 			}
 
-			Debug.Write(@"Sending Reply: ");
+			Debug.Write(@"[Server] 发送回应: ");
 
 			// Create reply
-			client.CreateOutgoingMessage(@"Message Received");
+			client.CreateOutgoingMessage(@"消息收到");
 			var byteReply = client.OutgoingMessageToBytes();
 
 			// Listen for more incoming messages
@@ -194,7 +192,7 @@ namespace Common
 		/// <param name="ar"></param>
 		private static void SendReplyCallback(IAsyncResult ar)
 		{
-			Debug.WriteLine(@"Reply Sent");
+			Debug.WriteLine(@"[Server] 回应已发送");
 		}
 
 		/// <summary>
@@ -234,7 +232,7 @@ namespace Common
 		/// <param name="client">客户端</param>
 		private void CloseClient(ConnectedObject client)
 		{
-			Debug.WriteLine(@"客户端断开连接");
+			Debug.WriteLine(@"[Server] 客户端断开连接");
 			client.Close();
 			if (_clients.Contains(client))
 			{
@@ -261,9 +259,8 @@ namespace Common
 			}
 			catch
 			{
-				//
+				// ignored
 			}
 		}
 	}
-
 }

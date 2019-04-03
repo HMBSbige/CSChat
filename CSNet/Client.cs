@@ -1,15 +1,16 @@
-using CSChat.Common;
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 
-namespace Common
+namespace CSNet
 {
-	class Client
+	public class Client
 	{
 		public string ClientName = @"Client";
+
 		/// <summary>
 		/// Attempts to connect to a server
 		/// </summary>
@@ -28,7 +29,7 @@ namespace Common
 					try
 					{
 						++attempts;
-						Debug.WriteLine(@"Connection attempt " + attempts);
+						Debug.WriteLine($@"[{ClientName}] 尝试第 {attempts} 次连接");
 
 						// Attempt to connect
 						client.Socket.Connect(ipe);
@@ -41,21 +42,17 @@ namespace Common
 
 				// Display connected status
 				//Console.Clear();
-				Debug.WriteLine($@"Socket connected to {client.Socket.RemoteEndPoint}");
+				Debug.WriteLine($@"[{ClientName}] 已连接到 {client.Socket.RemoteEndPoint}");
 
 				// Start sending & receiving
-				var sendThread = new Thread(() => Send(client));
-				var receiveThread = new Thread(() => Receive(client));
+				var sendThread = new Task(() => Send(client));
+				var receiveThread = new Task(() => Receive(client));
 
 				sendThread.Start();
 				receiveThread.Start();
 
 				// Listen for threads to be aborted (occurs when socket looses it's connection with the server)
-				//Task.WaitAll(sendThread, receiveThread);
-				while (sendThread.IsAlive && receiveThread.IsAlive)
-				{
-
-				}
+				Task.WaitAll(sendThread, receiveThread);
 			}
 		}
 
@@ -66,10 +63,10 @@ namespace Common
 		private void Send(ConnectedObject client)
 		{
 			// Build message
-			client.CreateOutgoingMessage($@"Message from {ClientName}");
+			client.CreateOutgoingMessage($@"从 {ClientName} 发来的消息");
 			var data = client.OutgoingMessageToBytes();
 
-			// Send it on a 1 second interval
+			// Send it on a 3 second interval
 			while (true)
 			{
 				Thread.Sleep(3000);
@@ -79,14 +76,14 @@ namespace Common
 				}
 				catch (SocketException)
 				{
-					Debug.WriteLine(@"Server Closed");
+					Debug.WriteLine($@"[{ClientName}] 与服务器断开连接 Send");
 					client.Close();
-					Thread.CurrentThread.Abort();
+					return;
 				}
 				catch (Exception ex)
 				{
 					Debug.WriteLine(ex.Message);
-					Thread.CurrentThread.Abort();
+					return;
 				}
 			}
 		}
@@ -95,31 +92,29 @@ namespace Common
 		/// Message sent handler
 		/// </summary>
 		/// <param name="ar"></param>
-		private static void SendCallback(IAsyncResult ar)
+		private void SendCallback(IAsyncResult ar)
 		{
-			Debug.WriteLine(@"Message Sent");
+			Debug.WriteLine($@"[{ClientName}] 消息已发送");
 		}
 
-		private static void Receive(ConnectedObject client)
+		private void Receive(ConnectedObject client)
 		{
-			var bytesRead = 0;
-
 			while (true)
 			{
 				// Read message from the server
+				int bytesRead;
 				try
 				{
 					bytesRead = client.Socket.Receive(client.Buffer, SocketFlags.None);
 				}
 				catch (SocketException)
 				{
-					Debug.WriteLine(@"Server Closed");
+					Debug.WriteLine($@"[{ClientName}] 与服务器断开连接 Rec");
 					client.Close();
-					Thread.CurrentThread.Abort();
+					return;
 				}
 				catch (Exception)
 				{
-					Thread.CurrentThread.Abort();
 					return;
 				}
 
@@ -134,7 +129,7 @@ namespace Common
 					if (client.MessageReceived())
 					{
 						// Print message to the console
-						Debug.WriteLine(@"Message Received");
+						Debug.WriteLine($@"[{ClientName}] 消息已收到");
 
 						// Reset message
 						client.ClearIncomingMessage();

@@ -2,13 +2,14 @@
 using System.Net.Sockets;
 using System.Text;
 
-namespace Common
+namespace CSNet
 {
 	public class ConnectedObject
 	{
 		#region Properties
-		public Encoding MessageEncoding = new UTF8Encoding(false);//UTF8 without BOM
-																  // Client socket
+		// UTF8 without BOM
+		public readonly Encoding MessageEncoding = new UTF8Encoding(false);
+		// Client socket
 		public Socket Socket;
 		// Size of receive buffer
 		public int BufferSize = 1024;
