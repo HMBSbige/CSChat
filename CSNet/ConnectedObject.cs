@@ -1,10 +1,11 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text;
 
 namespace CSNet
 {
-	public class ConnectedObject
+	public class ConnectedObject : IDisposable
 	{
 		#region Properties
 		// UTF8 without BOM
@@ -100,7 +101,7 @@ namespace CSNet
 		/// <summary>
 		/// Closes the connection
 		/// </summary>
-		public void Close()
+		private void Close()
 		{
 			try
 			{
@@ -109,12 +110,16 @@ namespace CSNet
 			}
 			catch (Exception)
 			{
-				Console.WriteLine(@"连接已断开");
+				Debug.WriteLine(@"连接已断开");
 			}
 		}
 
 		public string GetRemoteEndPoint()
 		{
+			if (_disposed)
+			{
+				return null;
+			}
 			return Socket.RemoteEndPoint.ToString();
 		}
 
@@ -128,9 +133,24 @@ namespace CSNet
 			Console.WriteLine(divider);
 			Console.WriteLine(@"收到消息");
 			Console.WriteLine(divider);
-			Console.WriteLine($@"从 socket 读取 {IncomingMessageLength()} 字节。");
+			Console.WriteLine($@"从 {GetRemoteEndPoint()} 读取 {IncomingMessageLength()} 字节。");
 			Console.WriteLine($@"消息: {IncomingMessage}");
 		}
 		#endregion
+
+		#region Dispose
+
+		private bool _disposed;
+
+		public void Dispose()
+		{
+			if (!_disposed)
+			{
+				Close();
+				_disposed = true;
+			}
+		}
+		#endregion
+
 	}
 }

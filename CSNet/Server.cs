@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace CSNet
 {
@@ -62,6 +63,7 @@ namespace CSNet
 
 			// Accept new client socket connection
 			var socket = _server.EndAccept(ar);
+			Debug.WriteLine($@"[Server] {socket.RemoteEndPoint} 连接成功");
 
 			// Create a new client connection object and store the socket
 			var client = new ConnectedObject
@@ -71,6 +73,7 @@ namespace CSNet
 
 			// Store all clients
 			_clients.Add(client);
+			CheckClientStatus(client);
 
 			// Begin receiving messages from new connection
 			try
@@ -232,8 +235,8 @@ namespace CSNet
 		/// <param name="client">客户端</param>
 		private void CloseClient(ConnectedObject client)
 		{
-			Debug.WriteLine(@"[Server] 客户端断开连接");
-			client.Close();
+			Debug.WriteLine($@"[Server] {client.GetRemoteEndPoint()} 断开连接");
+			client.Dispose();
 			if (_clients.Contains(client))
 			{
 				_clients.Remove(client);
@@ -261,6 +264,31 @@ namespace CSNet
 			{
 				// ignored
 			}
+		}
+
+		private void CheckClientStatus(ConnectedObject client)
+		{
+			Task.Run(() =>
+			{
+				var edp = client.GetRemoteEndPoint();
+				try
+				{
+					while (client.Socket.IsConnected(1000))
+					{
+						Task.Delay(1000).Wait();
+					}
+
+					CloseClient(client);
+				}
+				catch (ObjectDisposedException)
+				{
+					Debug.WriteLine($@"[Server] {edp} 已断开");
+				}
+				finally
+				{
+					Debug.WriteLine($@"[Server] {edp} 检测退出");
+				}
+			});
 		}
 	}
 }

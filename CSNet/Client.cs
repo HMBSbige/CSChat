@@ -2,28 +2,34 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace CSNet
 {
-	public class Client
+	public class Client : IDisposable
 	{
 		public string ClientName = @"Client";
 
-		/// <summary>
-		/// Attempts to connect to a server
-		/// </summary>
+		public ConnectedObject client;
+		public bool IsConnected { private set; get; }
+
+		protected ConnectedObject CreateNewSocket()
+		{
+			return new ConnectedObject { Socket = ConnectionManager.CreateSocket() };
+		}
+
 		public void Connect(EndPoint ipe)
 		{
-			// Attempt to reconnect
-			while (true)
+			// 尝试重连
+			while (!_disposed)
 			{
-				ConnectedObject client = new ConnectedObject { Socket = ConnectionManager.CreateSocket() };
-				// Create a new socket
+				// 创建新的 socket
+				client = CreateNewSocket();
+
+				// 连接次数
 				var attempts = 0;
 
-				// Loop until we connect (server could be down)
+				// 不停尝试连接，直到连接到服务器
 				while (!client.Socket.Connected)
 				{
 					try
@@ -31,73 +37,60 @@ namespace CSNet
 						++attempts;
 						Debug.WriteLine($@"[{ClientName}] 尝试第 {attempts} 次连接");
 
-						// Attempt to connect
+						// 尝试连接
 						client.Socket.Connect(ipe);
 					}
 					catch (SocketException)
 					{
-						//Console.Clear();
+						//ignored
 					}
 				}
 
-				// Display connected status
-				//Console.Clear();
+				// 显示连接状态
+				IsConnected = true;
 				Debug.WriteLine($@"[{ClientName}] 已连接到 {client.Socket.RemoteEndPoint}");
 
-				// Start sending & receiving
-				var sendThread = new Task(() => Send(client));
-				var receiveThread = new Task(() => Receive(client));
+				// 启动接收线程
+				var receiveThread = new Task(Receive);
 
-				sendThread.Start();
 				receiveThread.Start();
 
-				// Listen for threads to be aborted (occurs when socket looses it's connection with the server)
-				Task.WaitAll(sendThread, receiveThread);
+				// 与服务器断开连接
+				Task.WaitAll(receiveThread);
+				IsConnected = false;
 			}
+
+			Debug.WriteLine($@"[{ClientName}] 已取消连接到 {client.Socket.RemoteEndPoint}");
 		}
 
-		/// <summary>
-		/// Sends a message to the server
-		/// </summary>
-		/// <param name="client"></param>
-		private void Send(ConnectedObject client)
+		public void Send(string str)
 		{
 			// Build message
-			client.CreateOutgoingMessage($@"从 {ClientName} 发来的消息");
+			client.CreateOutgoingMessage($@"{str}");
 			var data = client.OutgoingMessageToBytes();
 
-			// Send it on a 3 second interval
-			while (true)
+			try
 			{
-				Thread.Sleep(3000);
-				try
-				{
-					client.Socket.BeginSend(data, 0, data.Length, SocketFlags.None, SendCallback, client);
-				}
-				catch (SocketException)
-				{
-					Debug.WriteLine($@"[{ClientName}] 与服务器断开连接 Send");
-					client.Close();
-					return;
-				}
-				catch (Exception ex)
-				{
-					Debug.WriteLine(ex.Message);
-					return;
-				}
+				client.Socket.BeginSend(data, 0, data.Length, SocketFlags.None, SendCallback, client);
 			}
+			catch (SocketException)
+			{
+				Debug.WriteLine($@"[{ClientName}] 与服务器断开连接 Send");
+				client.Dispose();
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine(ex.Message);
+			}
+
 		}
 
-		/// <summary>
-		/// Message sent handler
-		/// </summary>
-		/// <param name="ar"></param>
-		private void SendCallback(IAsyncResult ar)
+		protected void SendCallback(IAsyncResult ar)
 		{
 			Debug.WriteLine($@"[{ClientName}] 消息已发送");
 		}
 
-		private void Receive(ConnectedObject client)
+		protected void Receive()
 		{
 			while (true)
 			{
@@ -110,7 +103,7 @@ namespace CSNet
 				catch (SocketException)
 				{
 					Debug.WriteLine($@"[{ClientName}] 与服务器断开连接 Rec");
-					client.Close();
+					client.Dispose();
 					return;
 				}
 				catch (Exception)
@@ -135,6 +128,21 @@ namespace CSNet
 						client.ClearIncomingMessage();
 					}
 				}
+			}
+		}
+
+		private void DisConnect()
+		{
+			client.Dispose();
+		}
+
+		private bool _disposed;
+		public void Dispose()
+		{
+			if (!_disposed)
+			{
+				DisConnect();
+				_disposed = true;
 			}
 		}
 	}
